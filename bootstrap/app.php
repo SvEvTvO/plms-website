@@ -17,10 +17,10 @@ $app = Application::configure(basePath: dirname(__DIR__))
         //
     })->create();
 
-// --- TAMBAHKAN KODE INI UNTUK VERCEL ---
-if (isset($_SERVER['VERCEL']) || isset($_ENV['VERCEL'])) {
+// --- JALUR PAKSA VERCEL STORAGE ---
+if (getenv('IS_VERCEL') || isset($_ENV['IS_VERCEL'])) {
     $app->useStoragePath('/tmp/storage');
 }
-// ---------------------------------------
+// ----------------------------------
 
 return $app;
