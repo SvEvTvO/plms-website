@@ -1,12 +1,11 @@
 <?php
 
-// 1. Skrip X-Ray: Jangan pernah biarkan layar blank putih lagi
 ini_set('display_errors', '1');
 ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
 
 try {
-    // 2. Buat folder sementara untuk Vercel
+    // 1. Buat folder sementara
     $dirs = [
         '/tmp/storage/framework/sessions',
         '/tmp/storage/framework/cache/data',
@@ -20,10 +19,18 @@ try {
         }
     }
 
-    // 3. Suntikkan Variabel Wajib (TERMASUK TEMUAN COPILOT)
+    // 2. Suntikkan Variabel Bypass Cache & Storage
     $serverlessEnv = [
+        // BYPASS ABSOLUTE PATH MISMATCH (Solusi dari Error "view")
+        'APP_SERVICES_CACHE'     => '/tmp/services.php',
+        'APP_PACKAGES_CACHE'     => '/tmp/packages.php',
+        'APP_CONFIG_CACHE'       => '/tmp/config.php',
+        'APP_ROUTES_CACHE'       => '/tmp/routes.php',
+        'APP_EVENTS_CACHE'       => '/tmp/events.php',
+
+        // STORAGE & DRIVERS
         'LARAVEL_STORAGE_PATH'   => '/tmp/storage',
-        'APP_MAINTENANCE_DRIVER' => 'array', // Solusi dari Copilot! (array sangat aman untuk serverless)
+        'APP_MAINTENANCE_DRIVER' => 'array',
         'LOG_CHANNEL'            => 'stderr',
         'SESSION_DRIVER'         => 'cookie',
         'CACHE_STORE'            => 'array',
@@ -37,11 +44,10 @@ try {
         putenv("{$key}={$value}");
     }
 
-    // 4. Nyalakan mesin Laravel
+    // 3. Nyalakan mesin Laravel dengan bersih
     require __DIR__ . '/../public/index.php';
 
 } catch (\Throwable $e) {
-    // Tangkap error jika masih ada yang lolos
     echo "<h2 style='color:red;'>🚨 Fatal Error Caught!</h2>";
     echo "<p><strong>" . $e->getMessage() . "</strong></p>";
     echo "<pre>" . $e->getTraceAsString() . "</pre>";
