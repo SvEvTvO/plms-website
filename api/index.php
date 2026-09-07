@@ -1,10 +1,25 @@
 <?php
 
-// Tampilkan error jika terjadi crash
 ini_set('display_errors', '1');
 error_reporting(E_ALL);
 
-// Buat struktur direktori untuk Vercel
+// 1. SUNTIK PAKSA PENGATURAN SERVERLESS KE JANTUNG LARAVEL
+$serverlessEnv = [
+    'IS_VERCEL' => 'true',
+    'LOG_CHANNEL' => 'stderr',
+    'SESSION_DRIVER' => 'cookie',
+    'CACHE_DRIVER' => 'array',
+    'CACHE_STORE' => 'array',
+    'VIEW_COMPILED_PATH' => '/tmp/views',
+];
+
+foreach ($serverlessEnv as $key => $value) {
+    putenv("{$key}={$value}");
+    $_ENV[$key] = $value;
+    $_SERVER[$key] = $value;
+}
+
+// 2. BUAT FOLDER SEMENTARA
 $storageDirs = [
     '/tmp/storage/framework/sessions',
     '/tmp/storage/framework/cache',
@@ -18,8 +33,5 @@ foreach ($storageDirs as $dir) {
     }
 }
 
-// Beri tanda bahwa aplikasi berjalan di Vercel
-putenv('IS_VERCEL=true');
-$_ENV['IS_VERCEL'] = true;
-
+// 3. JALANKAN APLIKASI
 require __DIR__ . '/../public/index.php';
