@@ -1,16 +1,17 @@
 <?php
 
-// Buat folder storage sementara jika berjalan di Vercel
+// Pastikan Vercel membuat folder penyimpanan sementara sebelum Laravel memanggilnya
 $storageDirs = [
     '/tmp/storage/framework/views',
     '/tmp/storage/framework/cache',
+    '/tmp/storage/framework/cache/data',
     '/tmp/storage/framework/sessions',
     '/tmp/storage/logs',
 ];
 
 foreach ($storageDirs as $dir) {
     if (!is_dir($dir)) {
-        mkdir($dir, 0755, true);
+        mkdir($dir, 0777, true);
     }
 }
 
