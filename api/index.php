@@ -35,7 +35,7 @@ try {
 
         // Kunci Login Cookie
         'SESSION_DRIVER'         => 'cookie',
-        'SESSION_SECURE_COOKIE'  => 'false',
+        'SESSION_SECURE_COOKIE'  => 'true',
 
         // Pengaturan Standar Serverless
         'CACHE_STORE'            => 'array',
