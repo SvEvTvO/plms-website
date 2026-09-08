@@ -48,6 +48,24 @@ try {
         putenv("{$k}={$v}");
     }
 
+    // Normalize SESSION_DOMAIN if someone accidentally set full URL (e.g. https://...)
+    if (!empty($_ENV['SESSION_DOMAIN'])) {
+        $domain = $_ENV['SESSION_DOMAIN'];
+        // If it looks like a URL, extract host part
+        if (str_starts_with($domain, 'http://') || str_starts_with($domain, 'https://')) {
+            $parts = parse_url($domain);
+            if (!empty($parts['host'])) {
+                $domain = $parts['host'];
+            }
+        }
+        // Remove any trailing slash
+        $domain = rtrim($domain, '/');
+        // Update envs
+        $_ENV['SESSION_DOMAIN'] = $domain;
+        $_SERVER['SESSION_DOMAIN'] = $domain;
+        putenv("SESSION_DOMAIN={$domain}");
+    }
+
     // Temporary debug logging: enable by setting DEBUG_REQUEST_LOG=true in Vercel env
     if (getenv('DEBUG_REQUEST_LOG') === 'true') {
         $headers = function_exists('getallheaders') ? getallheaders() : [];
