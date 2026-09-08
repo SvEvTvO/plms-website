@@ -8,24 +8,6 @@ use App\Http\Controllers\WebsiteController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FavoriteController;
 
-Route::get('/debug-hash-test', function () {
-    $result = @password_hash('test123', PASSWORD_BCRYPT, ['cost' => 12]);
-
-    return response()->json([
-        'php_version'          => PHP_VERSION,
-        'openssl_loaded'       => extension_loaded('openssl'),
-        'sodium_loaded'        => extension_loaded('sodium'),
-        'hash_loaded'          => extension_loaded('hash'),
-        'crypt_blowfish'       => defined('CRYPT_BLOWFISH') ? CRYPT_BLOWFISH : 'undefined',
-        'password_algos'       => function_exists('password_algos') ? password_algos() : 'function tidak ada',
-        'password_hash_result' => $result === false
-            ? 'GAGAL (false)'
-            : 'BERHASIL: ' . substr($result, 0, 15) . '...',
-        'last_error'           => error_get_last(),
-        'config_hash_driver'   => config('hashing.driver'),
-    ]);
-});
-
 
 // 1. Tampilkan Landing Page untuk route '/'
 Route::get('/', function () {
