@@ -3,6 +3,8 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Session\TokenMismatchException;
+use Illuminate\Support\Facades\Log;
 
 $app = Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -17,7 +19,30 @@ $app = Application::configure(basePath: dirname(__DIR__))
 
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+
+        // --- DEBUG: log detail persis saat CSRF mismatch (419) terjadi ---
+        $exceptions->report(function (TokenMismatchException $e) {
+            try {
+                Log::error('[CSRF-MISMATCH] ' . json_encode([
+                    'session_id'       => session()->getId(),
+                    'session_token'    => session()->token(),
+                    'posted_token'     => request()->input('_token'),
+                    'header_token'     => request()->header('X-CSRF-TOKEN'),
+                    'cookie_header'    => request()->header('Cookie'),
+                    'raw_cookies'      => $_COOKIE ?? [],
+                    'session_driver'   => config('session.driver'),
+                    'session_domain'   => config('session.domain'),
+                    'session_secure'   => config('session.secure'),
+                    'session_same_site'=> config('session.same_site'),
+                    'session_cookie_name' => config('session.cookie'),
+                    'is_secure_request'=> request()->isSecure(),
+                    'host'             => request()->getHost(),
+                ], JSON_UNESCAPED_SLASHES));
+            } catch (\Throwable $inner) {
+                Log::error('[CSRF-MISMATCH] logging failed: ' . $inner->getMessage());
+            }
+        });
+
     })->create();
 
 // --- JALUR PAKSA VERCEL STORAGE ---
