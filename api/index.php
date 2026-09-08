@@ -27,12 +27,14 @@ try {
         'LARAVEL_STORAGE_PATH'   => '/tmp/storage',
         'APP_MAINTENANCE_DRIVER' => 'array',
         'LOG_CHANNEL'            => 'stderr',
-        'SESSION_DRIVER'         => 'cookie',
+
+        // --- KUNCI UTAMANYA DI SINI ---
+        'SESSION_DRIVER'         => 'database',
+        // ------------------------------
+
         'CACHE_STORE'            => 'array',
         'CACHE_DRIVER'           => 'array',
         'VIEW_COMPILED_PATH'     => '/tmp/storage/framework/views',
-
-        // --- TAMBAHAN BARU UNTUK FIX LOGIN ---
         'HASH_DRIVER'            => 'bcrypt',
         'BCRYPT_ROUNDS'          => '12',
     ];
