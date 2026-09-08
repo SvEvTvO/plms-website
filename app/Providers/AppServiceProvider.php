@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\URL;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -11,7 +12,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // HACK: Paksa konfigurasi agar kebal dari cache Vercel
+        if (config('app.env') === 'production') {
+            config([
+                'session.driver' => 'cookie', // Simpan di browser agar anti-amnesia
+                'session.secure' => true,     // Wajib HTTPS
+                'cache.default'  => 'array',  // Jangan gunakan file untuk cache
+            ]);
+        }
     }
 
     /**
@@ -19,9 +27,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Paksa HTTPS jika aplikasi berjalan di mode production (Vercel)
+        // Paksa skema HTTPS agar CSS dan JS tidak diblokir
         if (config('app.env') === 'production') {
-            \Illuminate\Support\Facades\URL::forceScheme('https');
+            URL::forceScheme('https');
         }
     }
 }
