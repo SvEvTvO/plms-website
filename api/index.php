@@ -12,7 +12,7 @@ try {
         '/framework/cache/data',
         '/framework/views',
         '/logs',
-        '/bootstrap/cache' // Wajib ada untuk Laravel 12
+        '/bootstrap/cache'
     ];
 
     foreach ($dirs as $dir) {
@@ -26,7 +26,7 @@ try {
         'LARAVEL_STORAGE_PATH'   => $tmp,
         'VIEW_COMPILED_PATH'     => $tmp . '/framework/views',
 
-        // BYPASS CACHE: Arahkan pembuatan cache otomatis ke /tmp
+        // BYPASS CACHE
         'APP_SERVICES_CACHE'     => $tmp . '/bootstrap/cache/services.php',
         'APP_PACKAGES_CACHE'     => $tmp . '/bootstrap/cache/packages.php',
         'APP_CONFIG_CACHE'       => $tmp . '/bootstrap/cache/config.php',
@@ -40,7 +40,11 @@ try {
         // Pengaturan Standar Serverless
         'CACHE_STORE'            => 'array',
         'CACHE_DRIVER'           => 'array',
-        'APP_MAINTENANCE_DRIVER' => 'array',
+
+        // --- INI YANG DIUBAH (Kembali ke file) ---
+        'APP_MAINTENANCE_DRIVER' => 'file',
+        // -----------------------------------------
+
         'LOG_CHANNEL'            => 'stderr',
         'HASH_DRIVER'            => 'bcrypt',
     ];
@@ -55,7 +59,7 @@ try {
     require __DIR__ . '/../public/index.php';
 
 } catch (\Throwable $e) {
-    // Skrip X-Ray: Tangkap error agar tidak blank 500
+    // Skrip X-Ray
     echo "<div style='font-family: sans-serif; padding: 20px; background: #ffe4e6; color: #9f1239; border-radius: 8px;'>";
     echo "<h2>🚨 Vercel PHP Crash Log</h2>";
     echo "<p><strong>Error:</strong> " . $e->getMessage() . "</p>";
