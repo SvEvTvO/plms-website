@@ -15,7 +15,7 @@ Route::get('/', function () {
 
 // 2. Dasbor (Hanya bisa diakses jika sudah login)
 Route::get('/dashboard', [DashboardController::class, 'index'])
-    ->middleware(['auth', 'verified'])
+    ->middleware(['auth'])
     ->name('dashboard');
 
 // 3. Grup Route dengan proteksi Auth (Harus Login)

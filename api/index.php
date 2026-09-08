@@ -13,10 +13,11 @@ try {
     ];
 
     foreach ($dirs as $dir) {
-        if (!is_dir($dir)) {
-            mkdir($dir, 0777, true);
-        }
+        if (!is_dir($dir)) { mkdir($dir, 0777, true); }
     }
+
+    // Ambil URL Vercel secara otomatis
+    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
 
     $serverlessEnv = [
         'APP_SERVICES_CACHE'     => '/tmp/services.php',
@@ -28,9 +29,12 @@ try {
         'APP_MAINTENANCE_DRIVER' => 'array',
         'LOG_CHANNEL'            => 'stderr',
 
-        // --- KUNCI UTAMANYA DI SINI ---
-        'SESSION_DRIVER'         => 'database',
-        // ------------------------------
+        // --- KUNCI: SESI COOKIE DINAMIS ANTI-MENTAL ---
+        'SESSION_DRIVER'         => 'cookie', // Simpan di browser, hindari database!
+        'SESSION_DOMAIN'         => $host,    // Kunci cookie ke domain Vercel-mu
+        'SESSION_SECURE_COOKIE'  => 'true',   // Wajibkan HTTPS
+        'APP_URL'                => 'https://' . $host,
+        // ----------------------------------------------
 
         'CACHE_STORE'            => 'array',
         'CACHE_DRIVER'           => 'array',
