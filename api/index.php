@@ -48,6 +48,19 @@ try {
         putenv("{$k}={$v}");
     }
 
+    // Temporary debug logging: enable by setting DEBUG_REQUEST_LOG=true in Vercel env
+    if (getenv('DEBUG_REQUEST_LOG') === 'true') {
+        $headers = function_exists('getallheaders') ? getallheaders() : [];
+        $debug = [
+            'method' => $_SERVER['REQUEST_METHOD'] ?? null,
+            'uri' => $_SERVER['REQUEST_URI'] ?? null,
+            'headers' => $headers,
+            'cookies' => $_COOKIE ?? [],
+            'post' => $_POST ?? [],
+        ];
+        error_log("[REQUEST-DEBUG] " . json_encode($debug));
+    }
+
     require __DIR__ . '/../public/index.php';
 
 } catch (\Throwable $e) {
