@@ -3,7 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Session\TokenMismatchException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 $app = Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -19,17 +19,17 @@ $app = Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions) {
 
-        // --- DEBUG: tangkap SEMUA exception di route /login, pakai error_log() native ---
-        // Kita pakai error_log() langsung (bukan Log::error()) supaya tidak bergantung
-        // sama sekali pada konfigurasi channel logging Laravel.
+        // --- DEBUG: tangkap exception 419 (CSRF mismatch) di route /login ---
         $exceptions->render(function (\Throwable $e, $request) {
 
             if ($request->is('login')) {
+                $isCsrf419 = $e instanceof HttpException && $e->getStatusCode() === 419;
+
                 error_log('[EXC-DEBUG] class=' . get_class($e)
                     . ' | message=' . $e->getMessage()
-                    . ' | code=' . $e->getCode());
+                    . ' | is_csrf_419=' . ($isCsrf419 ? 'yes' : 'no'));
 
-                if ($e instanceof TokenMismatchException) {
+                if ($isCsrf419) {
                     try {
                         error_log('[CSRF-MISMATCH] ' . json_encode([
                             'session_id'          => session()->getId(),
