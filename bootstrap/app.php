@@ -4,7 +4,6 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Session\TokenMismatchException;
-use Illuminate\Support\Facades\Log;
 
 $app = Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -20,31 +19,40 @@ $app = Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions) {
 
-        // --- DEBUG: log detail persis saat CSRF mismatch (419) terjadi ---
-        // PENTING: pakai render(), bukan report(), karena Laravel secara
-        // default MENGABAIKAN TokenMismatchException dari sistem report().
-        $exceptions->render(function (TokenMismatchException $e, $request) {
-            try {
-                Log::error('[CSRF-MISMATCH] ' . json_encode([
-                    'session_id'          => session()->getId(),
-                    'session_token'       => session()->token(),
-                    'posted_token'        => $request->input('_token'),
-                    'header_token'        => $request->header('X-CSRF-TOKEN'),
-                    'cookie_header'       => $request->header('Cookie'),
-                    'raw_cookies'         => $_COOKIE ?? [],
-                    'session_driver'      => config('session.driver'),
-                    'session_domain'      => config('session.domain'),
-                    'session_secure'      => config('session.secure'),
-                    'session_same_site'   => config('session.same_site'),
-                    'session_cookie_name' => config('session.cookie'),
-                    'is_secure_request'   => $request->isSecure(),
-                    'host'                => $request->getHost(),
-                ], JSON_UNESCAPED_SLASHES));
-            } catch (\Throwable $inner) {
-                Log::error('[CSRF-MISMATCH] logging failed: ' . $inner->getMessage());
+        // --- DEBUG: tangkap SEMUA exception di route /login, pakai error_log() native ---
+        // Kita pakai error_log() langsung (bukan Log::error()) supaya tidak bergantung
+        // sama sekali pada konfigurasi channel logging Laravel.
+        $exceptions->render(function (\Throwable $e, $request) {
+
+            if ($request->is('login')) {
+                error_log('[EXC-DEBUG] class=' . get_class($e)
+                    . ' | message=' . $e->getMessage()
+                    . ' | code=' . $e->getCode());
+
+                if ($e instanceof TokenMismatchException) {
+                    try {
+                        error_log('[CSRF-MISMATCH] ' . json_encode([
+                            'session_id'          => session()->getId(),
+                            'session_token'       => session()->token(),
+                            'posted_token'        => $request->input('_token'),
+                            'header_token'        => $request->header('X-CSRF-TOKEN'),
+                            'cookie_header'       => $request->header('Cookie'),
+                            'raw_cookies'         => $_COOKIE ?? [],
+                            'session_driver'      => config('session.driver'),
+                            'session_domain'      => config('session.domain'),
+                            'session_secure'      => config('session.secure'),
+                            'session_same_site'   => config('session.same_site'),
+                            'session_cookie_name' => config('session.cookie'),
+                            'is_secure_request'   => $request->isSecure(),
+                            'host'                => $request->getHost(),
+                        ], JSON_UNESCAPED_SLASHES));
+                    } catch (\Throwable $inner) {
+                        error_log('[CSRF-MISMATCH] logging failed: ' . $inner->getMessage());
+                    }
+                }
             }
 
-            // return null supaya Laravel tetap render halaman 419 seperti biasa
+            // return null supaya Laravel tetap render halaman error seperti biasa
             return null;
         });
 
