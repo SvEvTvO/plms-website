@@ -5,7 +5,6 @@ ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
 
 try {
-    // 1. Buat folder sementara
     $dirs = [
         '/tmp/storage/framework/sessions',
         '/tmp/storage/framework/cache/data',
@@ -19,16 +18,12 @@ try {
         }
     }
 
-    // 2. Suntikkan Variabel Bypass Cache & Storage
     $serverlessEnv = [
-        // BYPASS ABSOLUTE PATH MISMATCH (Solusi dari Error "view")
         'APP_SERVICES_CACHE'     => '/tmp/services.php',
         'APP_PACKAGES_CACHE'     => '/tmp/packages.php',
         'APP_CONFIG_CACHE'       => '/tmp/config.php',
         'APP_ROUTES_CACHE'       => '/tmp/routes.php',
         'APP_EVENTS_CACHE'       => '/tmp/events.php',
-
-        // STORAGE & DRIVERS
         'LARAVEL_STORAGE_PATH'   => '/tmp/storage',
         'APP_MAINTENANCE_DRIVER' => 'array',
         'LOG_CHANNEL'            => 'stderr',
@@ -36,6 +31,10 @@ try {
         'CACHE_STORE'            => 'array',
         'CACHE_DRIVER'           => 'array',
         'VIEW_COMPILED_PATH'     => '/tmp/storage/framework/views',
+
+        // --- TAMBAHAN BARU UNTUK FIX LOGIN ---
+        'HASH_DRIVER'            => 'bcrypt',
+        'BCRYPT_ROUNDS'          => '12',
     ];
 
     foreach ($serverlessEnv as $key => $value) {
@@ -44,7 +43,6 @@ try {
         putenv("{$key}={$value}");
     }
 
-    // 3. Nyalakan mesin Laravel dengan bersih
     require __DIR__ . '/../public/index.php';
 
 } catch (\Throwable $e) {
