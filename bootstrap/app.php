@@ -11,7 +11,10 @@ $app = Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        //
+
+        // --- TAMBAHKAN BARIS INI UNTUK MEMPERBAIKI CSS BLANK (HTTPS) ---
+        $middleware->trustProxies(at: '*');
+
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
