@@ -2,30 +2,25 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Category extends Model
 {
-    use HasFactory;
+    protected $fillable = ['user_id', 'category_group_id', 'name', 'slug', 'icon', 'color'];
 
-    protected $fillable = [
-        'user_id', 'master_category_id', 'name', 'slug', 
-        'description', 'icon', 'sort_order', 'is_active'
-    ];
-
-    public function user()
+    public function group()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(CategoryGroup::class, 'category_group_id');
     }
 
-    public function masterCategory()
+    // Tambahkan fungsi relasi ke Tags ini
+    public function tags()
     {
-        return $this->belongsTo(MasterCategory::class);
+        return $this->hasMany(Tag::class);
     }
 
-    public function websites()
+    public function bookmarks()
     {
-        return $this->belongsToMany(Website::class, 'website_category');
+        return $this->hasMany(Bookmark::class);
     }
 }

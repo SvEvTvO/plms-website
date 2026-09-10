@@ -2,24 +2,21 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Tag extends Model
 {
-    use HasFactory;
+    protected $fillable = ['user_id', 'category_id', 'name', 'slug', 'status'];
 
-    protected $fillable = [
-        'user_id', 'name', 'slug'
-    ];
-
-    public function user()
+    // Relasi ke Kategori
+    public function category()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(Category::class);
     }
 
-    public function websites()
+    // Relasi ke Bookmark (Tetap Many-to-Many)
+    public function bookmarks()
     {
-        return $this->belongsToMany(Website::class, 'website_tag');
+        return $this->belongsToMany(Bookmark::class);
     }
 }

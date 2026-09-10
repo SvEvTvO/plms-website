@@ -11,11 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('website_tag', function (Blueprint $table) {
-            $table->foreignId('website_id')->constrained('websites')->cascadeOnDelete();
-            $table->foreignId('tag_id')->constrained('tags')->cascadeOnDelete();
-
-            $table->primary(['website_id', 'tag_id']);
+        Schema::create('category_groups', function (Blueprint $table) {
+            $table->id();
+            $table->string('name'); // Contoh: "Tech & Development"
+            $table->string('icon')->nullable(); // Contoh: "code" atau emoji "💻"
+            $table->timestamps();
         });
     }
 
@@ -24,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('website_tag');
+        Schema::dropIfExists('category_groups');
     }
 };

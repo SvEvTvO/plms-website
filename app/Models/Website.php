@@ -10,28 +10,22 @@ class Website extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id', 'name', 'slug', 'url', 'description',
-        'favicon_url', 'image_url', 'pricing_type',
-        'why_saved', 'notes', 'status', 'is_favorite', 'last_visited_at'
+        'original_url',
+        'url_hash',
+        'title',
+        'description',
+        'icon_url'
     ];
 
-    protected $casts = [
-        'is_favorite' => 'boolean',
-        'last_visited_at' => 'datetime',
-    ];
-
-    public function user()
+    // 1 Website bisa disimpan (dibookmark) oleh banyak User
+    public function bookmarks()
     {
-        return $this->belongsTo(User::class);
+        return $this->hasMany(Bookmark::class);
     }
 
-    public function categories()
+    // Tambahkan fungsi ini di dalam class Website
+    public function publicBookmarks()
     {
-        return $this->belongsToMany(Category::class, 'website_category');
-    }
-
-    public function tags()
-    {
-        return $this->belongsToMany(Tag::class, 'website_tag');
+        return $this->hasMany(Bookmark::class)->where('is_public', true);
     }
 }
