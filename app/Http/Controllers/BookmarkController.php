@@ -6,6 +6,7 @@ use App\Models\Bookmark;
 use App\Models\Category;
 use App\Models\Tag;
 use App\Models\Website;
+use App\Models\CategoryGroup;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -17,13 +18,13 @@ class BookmarkController extends Controller
      */
     public function create()
     {
-        // Ambil semua kategori beserta grupnya
         $categories = Category::with('group')->orderBy('name', 'asc')->get();
-
-        // AMBIL SEMUA TAG YANG SUDAH DISETUJUI UNTUK DIKIRIM KE MEMORI ALPINE.JS
         $allTags = Tag::where('status', 'approved')->get(['id', 'name', 'category_id']);
 
-        return view('bookmarks.create', compact('categories', 'allTags'));
+        // AMBIL SEMUA GRUP UNTUK PILIHAN INLINE CREATION
+        $groups = CategoryGroup::orderBy('name', 'asc')->get();
+
+        return view('bookmarks.create', compact('categories', 'allTags', 'groups'));
     }
 
     /**
@@ -31,21 +32,62 @@ class BookmarkController extends Controller
      */
     public function store(Request $request)
     {
-        // 1. Validasi Input
+        // 1. Validasi Input (Tambahkan category_icon dan group_icon)
         $validated = $request->validate([
             'url' => 'required|url|max:2048',
-            'category_id' => 'required|exists:categories,id',
+            'category_id' => 'nullable|exists:categories,id',
+            'new_category_name' => 'nullable|string|max:255',
+            'category_icon' => 'nullable|string|max:50', // <-- Tambahan Baru
+            'group_id' => 'nullable|exists:category_groups,id',
+            'new_group_name' => 'nullable|string|max:255',
+            'group_icon' => 'nullable|string|max:50', // <-- Tambahan Baru
             'custom_title' => 'nullable|string|max:255',
             'tags' => 'nullable|array',
             'tags.*' => 'string|max:50',
-
-            // Aturan Validasi Harga Baru
             'pricing_type' => 'required|in:free,freemium,premium',
             'payment_model' => 'nullable|in:subscription,one_time',
             'price_range' => 'nullable|string',
         ]);
 
-        // 2. Normalisasi URL
+        // 2. Logika Inline Creation (Grup & Kategori dengan Icon)
+        $finalCategoryId = $validated['category_id'] ?? null;
+
+        if ($request->filled('new_category_name')) {
+            $finalGroupId = $validated['group_id'] ?? null;
+
+            // Jika membuat Grup Baru
+            if ($request->filled('new_group_name')) {
+                $group = CategoryGroup::firstOrCreate(
+                    ['name' => $validated['new_group_name']],
+                    [
+                        'user_id' => auth()->id(),
+                        'icon' => $validated['group_icon'] ?? 'folder' // Simpan Ikon Grup
+                    ]
+                );
+                $finalGroupId = $group->id;
+            }
+
+            // Buat Kategori Baru
+            $category = Category::firstOrCreate(
+                [
+                    'name' => $validated['new_category_name'],
+                    'category_group_id' => $finalGroupId
+                ],
+                [
+                    'slug' => \Illuminate\Support\Str::slug($validated['new_category_name']) . '-' . uniqid(),
+                    'user_id' => auth()->id(),
+                    'icon' => $validated['category_icon'] ?? 'folder' // Simpan Ikon Kategori
+                ]
+            );
+            $finalCategoryId = $category->id;
+        }
+
+        // Validasi ekstra: Pastikan pada akhirnya category_id tersedia
+        if (!$finalCategoryId) {
+            return back()->withErrors(['category_id' => 'Kategori wajib dipilih atau dibuat baru.'])->withInput();
+        }
+
+        // 3. Normalisasi URL
         $originalUrl = $request->url;
         $parsedUrl = parse_url($originalUrl);
         $host = preg_replace('/^www\./', '', $parsedUrl['host'] ?? '');
@@ -53,7 +95,7 @@ class BookmarkController extends Controller
         $cleanUrl = strtolower($host . $path);
         $urlHash = md5($cleanUrl);
 
-        // 3. Cek Website
+        // 4. Cek Website
         $website = Website::where('url_hash', $urlHash)->first();
         if (!$website) {
             $meta = $this->fetchWebsiteMeta($originalUrl);
@@ -66,7 +108,7 @@ class BookmarkController extends Controller
             ]);
         }
 
-        // 4. Cek Bookmark Duplikat
+        // 5. Cek Bookmark Duplikat
         $existingBookmark = Bookmark::where('user_id', auth()->id())
                                     ->where('website_id', $website->id)
                                     ->first();
@@ -74,21 +116,21 @@ class BookmarkController extends Controller
             return redirect()->back()->withErrors(['url' => 'Kamu sudah menyimpan website ini sebelumnya.'])->withInput();
         }
 
-        // 5. Simpan Bookmark
+        // 6. Simpan Bookmark (Menggunakan $finalCategoryId)
         $bookmark = Bookmark::create([
             'user_id' => auth()->id(),
             'website_id' => $website->id,
-            'category_id' => $validated['category_id'],
+            'category_id' => $finalCategoryId, // <-- Menggunakan ID yang sudah divalidasi
             'custom_title' => $validated['custom_title'] ?? null,
             'is_public' => false,
 
-            // Simpan Data Harga (Pastikan bersih jika tipenya Gratis)
+            // Simpan Data Harga
             'pricing_type' => $validated['pricing_type'],
             'payment_model' => $validated['pricing_type'] === 'free' ? null : ($validated['payment_model'] ?? null),
             'price_range' => $validated['pricing_type'] === 'free' ? null : ($validated['price_range'] ?? null),
         ]);
 
-        // 6. Proses Tags (SEKARANG SCOPED PER KATEGORI)
+        // 7. Proses Tags (Pribadi & Otomatis Aktif)
         if (!empty($validated['tags'])) {
             $tagIds = [];
             $inputTags = array_slice($validated['tags'], 0, 5);
@@ -97,15 +139,16 @@ class BookmarkController extends Controller
                 $cleanTagName = trim($tagName);
                 if ($cleanTagName === '') continue;
 
-                // Cari tag di dalam KATEGORI YANG DIPILIH, kalau tidak ada buat baru (pending)
+                // Cari tag di dalam KATEGORI YANG DIPILIH, kalau tidak ada buat tag pribadi baru
                 $tag = Tag::firstOrCreate(
                     [
-                        'category_id' => $validated['category_id'], // Kunci utamanya di sini!
-                        'slug' => \Illuminate\Support\Str::slug($cleanTagName)
+                        'category_id' => $finalCategoryId,
+                        'name' => $cleanTagName,
+                        'user_id' => auth()->id() // <-- Scope Tag Pribadi
                     ],
                     [
-                        'name' => $cleanTagName,
-                        'status' => 'pending'
+                        'slug' => \Illuminate\Support\Str::slug($cleanTagName) . '-' . uniqid(),
+                        'status' => 'approved' // <-- Langsung aktif untuk user
                     ]
                 );
 
@@ -114,7 +157,7 @@ class BookmarkController extends Controller
             $bookmark->tags()->sync($tagIds);
         }
 
-        return redirect()->route('dashboard')->with('success', 'Website berhasil disimpan ke Library!');
+        return redirect()->route('dashboard')->with('success', 'Website berhasil disimpan ke Koleksi Pribadi!');
     }
 
     /**
@@ -222,15 +265,17 @@ class BookmarkController extends Controller
     // Menampilkan halaman Edit
     public function edit(Bookmark $bookmark)
     {
-        // Pastikan hanya pemiliknya yang bisa mengedit
         if ($bookmark->user_id !== auth()->id()) abort(403);
 
         $bookmark->load(['website', 'tags']);
-
+        
         $categories = Category::with('group')->orderBy('name', 'asc')->get();
         $allTags = Tag::where('status', 'approved')->get(['id', 'name', 'category_id']);
+        
+        // AMBIL SEMUA GRUP UNTUK PILIHAN INLINE CREATION
+        $groups = CategoryGroup::orderBy('name', 'asc')->get();
 
-        return view('bookmarks.edit', compact('bookmark', 'categories', 'allTags'));
+        return view('bookmarks.edit', compact('bookmark', 'categories', 'allTags', 'groups'));
     }
 
     // Memproses data Update
@@ -240,7 +285,12 @@ class BookmarkController extends Controller
 
         $validated = $request->validate([
             'url' => 'required|url|max:2048',
-            'category_id' => 'required|exists:categories,id',
+            'category_id' => 'nullable|exists:categories,id', // Nullable karena bisa buat baru
+            'new_category_name' => 'nullable|string|max:255',
+            'category_icon' => 'nullable|string|max:50',
+            'group_id' => 'nullable|exists:category_groups,id',
+            'new_group_name' => 'nullable|string|max:255',
+            'group_icon' => 'nullable|string|max:50',
             'custom_title' => 'nullable|string|max:255',
             'tags' => 'nullable|array',
             'tags.*' => 'string|max:50',
@@ -249,37 +299,67 @@ class BookmarkController extends Controller
             'price_range' => 'nullable|string',
         ]);
 
-        // Buat hash untuk URL (agar tidak error Not Null Violation)
-        // Note: Pastikan kamu menggunakan algoritma yang sama dengan fungsi store() kamu.
-        // Standarnya biasanya menggunakan 'sha256' atau 'md5'.
-        $urlHash = hash('sha256', $validated['url']);
+        // 1. Logika Inline Creation (Grup & Kategori)
+        $finalCategoryId = $validated['category_id'] ?? null;
 
-        // Update Website URL (Jika user mengganti URL, buat record website baru)
+        if ($request->filled('new_category_name')) {
+            $finalGroupId = $validated['group_id'] ?? null;
+
+            if ($request->filled('new_group_name')) {
+                $group = CategoryGroup::firstOrCreate(
+                    ['name' => $validated['new_group_name']],
+                    ['user_id' => auth()->id(), 'icon' => $validated['group_icon'] ?? 'folder']
+                );
+                $finalGroupId = $group->id;
+            }
+
+            $category = Category::firstOrCreate(
+                ['name' => $validated['new_category_name'], 'category_group_id' => $finalGroupId],
+                [
+                    'slug' => \Illuminate\Support\Str::slug($validated['new_category_name']) . '-' . uniqid(),
+                    'user_id' => auth()->id(),
+                    'icon' => $validated['category_icon'] ?? 'folder'
+                ]
+            );
+            $finalCategoryId = $category->id;
+        }
+
+        if (!$finalCategoryId) {
+            return back()->withErrors(['category_id' => 'Kategori wajib dipilih atau dibuat baru.'])->withInput();
+        }
+
+        // 2. Normalisasi & Update Website URL (Sesuai MD5 dari fungsi Store kamu)
+        $originalUrl = $request->url;
+        $parsedUrl = parse_url($originalUrl);
+        $host = preg_replace('/^www\./', '', $parsedUrl['host'] ?? '');
+        $path = rtrim($parsedUrl['path'] ?? '', '/');
+        $cleanUrl = strtolower($host . $path);
+        $urlHash = md5($cleanUrl);
+
         $website = \App\Models\Website::firstOrCreate(
-            ['original_url' => $validated['url']],
-            ['url_hash' => $urlHash] // <-- FIX: Masukkan url_hash saat proses create
+            ['url_hash' => $urlHash],
+            ['original_url' => $originalUrl]
         );
 
-        // Update Data Bookmark
+        // 3. Update Data Bookmark
         $bookmark->update([
             'website_id' => $website->id,
-            'category_id' => $validated['category_id'],
+            'category_id' => $finalCategoryId,
             'custom_title' => $validated['custom_title'] ?? null,
             'pricing_type' => $validated['pricing_type'],
             'payment_model' => $validated['pricing_type'] === 'free' ? null : ($validated['payment_model'] ?? null),
             'price_range' => $validated['pricing_type'] === 'free' ? null : ($validated['price_range'] ?? null),
         ]);
 
-        // Logika Sinkronisasi Tag
+        // 4. Sinkronisasi Tags (Inline Creation)
         $tagIds = [];
         if (!empty($validated['tags'])) {
             foreach(array_slice($validated['tags'], 0, 5) as $tagName) {
                 $cleanName = trim($tagName);
                 if($cleanName === '') continue;
-
-                // Cari atau buat tag pribadi baru jika diketik manual
+                
                 $tag = Tag::firstOrCreate([
-                    'category_id' => $validated['category_id'],
+                    'category_id' => $finalCategoryId,
                     'name' => $cleanName,
                     'user_id' => auth()->id()
                 ], [
