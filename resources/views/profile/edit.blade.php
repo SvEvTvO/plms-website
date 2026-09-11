@@ -1,56 +1,92 @@
 <x-app-layout>
-    <div class="max-w-4xl mx-auto space-y-8">
-
-        <div class="mb-4">
-            <h2 class="text-3xl font-heading font-bold text-gray-900 leading-tight">Profil Akun</h2>
-            <p class="text-sm text-gray-500 mt-1">Kelola informasi data diri dan pengaturan keamanan akunmu.</p>
+    <!-- SLOT HEADER: Menyesuaikan dengan standar halaman lain -->
+    <x-slot name="header">
+        <div>
+            <h2 class="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Profil Akun</h2>
+            <p class="text-sm text-slate-500 mt-1">Kelola informasi data diri dan pengaturan keamanan akunmu.</p>
         </div>
+    </x-slot>
 
-        <div class="bg-white rounded-[24px] p-6 sm:p-8 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-gray-100">
-            <div class="flex items-start sm:items-center gap-4 mb-6 pb-6 border-b border-gray-100">
-                <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-[14px] flex items-center justify-center border border-blue-100 shadow-sm shrink-0">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0"></path><path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"></path></svg>
-                </div>
-                <div>
-                    <h3 class="text-xl font-heading font-bold text-gray-900">Informasi Pribadi</h3>
-                    <p class="text-sm text-gray-500 mt-1">Perbarui nama lengkap dan alamat email akunmu di sini.</p>
-                </div>
-            </div>
+    <!-- WRAPPER HALAMAN (Lebar disamakan dengan halaman lain) -->
+    <div class="max-w-5xl mx-auto pb-16 pt-6 space-y-10 sm:space-y-12">
 
-            <div class="max-w-xl">
-                @include('profile.partials.update-profile-information-form')
-            </div>
-        </div>
-
-        <div class="bg-white rounded-[24px] p-6 sm:p-8 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-gray-100">
-            <div class="flex items-start sm:items-center gap-4 mb-6 pb-6 border-b border-gray-100">
-                <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-[14px] flex items-center justify-center border border-emerald-100 shadow-sm shrink-0">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v6a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-6z"></path><path d="M11 16a1 1 0 1 0 2 0a1 1 0 0 0 -2 0"></path><path d="M8 11v-4a4 4 0 1 1 8 0v4"></path></svg>
-                </div>
-                <div>
-                    <h3 class="text-xl font-heading font-bold text-gray-900">Ubah Password</h3>
-                    <p class="text-sm text-gray-500 mt-1">Pastikan akunmu menggunakan kata sandi acak yang kuat agar tetap aman.</p>
+        <!-- ============================================== -->
+        <!-- SECTION 1: INFORMASI PRIBADI                   -->
+        <!-- ============================================== -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+            <!-- Kolom Kiri: Konteks -->
+            <div class="md:col-span-1">
+                <div class="sticky top-8">
+                    <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 mb-4 shadow-sm">
+                        <i class="ti ti-user-edit text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-extrabold text-slate-800">Informasi Pribadi</h3>
+                    <p class="text-sm text-slate-500 mt-2 leading-relaxed">Perbarui nama lengkap dan alamat email yang terhubung dengan akun komunitasmu.</p>
                 </div>
             </div>
 
-            <div class="max-w-xl">
-                @include('profile.partials.update-password-form')
+            <!-- Kolom Kanan: Form Eksekusi -->
+            <div class="md:col-span-2">
+                <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200 transition-shadow hover:shadow-md">
+                    <div class="max-w-xl">
+                        @include('profile.partials.update-profile-information-form')
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div class="bg-white rounded-[24px] p-6 sm:p-8 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-red-100">
-            <div class="flex items-start sm:items-center gap-4 mb-6 pb-6 border-b border-red-50">
-                <div class="w-12 h-12 bg-red-50 text-red-600 rounded-[14px] flex items-center justify-center border border-red-100 shadow-sm shrink-0">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                </div>
-                <div>
-                    <h3 class="text-xl font-heading font-bold text-red-600">Hapus Akun Permanen</h3>
-                    <p class="text-sm text-gray-500 mt-1">Setelah akun dihapus, seluruh data dan library-mu tidak dapat dikembalikan.</p>
+        <hr class="border-slate-100">
+
+        <!-- ============================================== -->
+        <!-- SECTION 2: UBAH PASSWORD                       -->
+        <!-- ============================================== -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+            <!-- Kolom Kiri: Konteks -->
+            <div class="md:col-span-1">
+                <div class="sticky top-8">
+                    <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100 mb-4 shadow-sm">
+                        <i class="ti ti-shield-lock text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-extrabold text-slate-800">Ubah Password</h3>
+                    <p class="text-sm text-slate-500 mt-2 leading-relaxed">Pastikan akunmu menggunakan kata sandi acak yang panjang dan kuat agar tetap aman dari ancaman.</p>
                 </div>
             </div>
 
-            <div class="max-w-xl">
-                @include('profile.partials.delete-user-form')
+            <!-- Kolom Kanan: Form Eksekusi -->
+            <div class="md:col-span-2">
+                <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200 transition-shadow hover:shadow-md">
+                    <div class="max-w-xl">
+                        @include('profile.partials.update-password-form')
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <hr class="border-slate-100">
+
+        <!-- ============================================== -->
+        <!-- SECTION 3: HAPUS AKUN (ZONA MERAH)             -->
+        <!-- ============================================== -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+            <!-- Kolom Kiri: Konteks -->
+            <div class="md:col-span-1">
+                <div class="sticky top-8">
+                    <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-100 mb-4 shadow-sm">
+                        <i class="ti ti-user-x text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-extrabold text-rose-600">Hapus Akun Permanen</h3>
+                    <p class="text-sm text-slate-500 mt-2 leading-relaxed">Setelah akun dihapus, seluruh data, referensi, dan pengajuan publikmu akan dimusnahkan dan tidak dapat dikembalikan. Harap berhati-hati.</p>
+                </div>
+            </div>
+
+            <!-- Kolom Kanan: Form Eksekusi -->
+            <div class="md:col-span-2">
+                <!-- Border dan efek hover diberi nuansa kemerahan sebagai peringatan alam bawah sadar -->
+                <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-rose-100 hover:border-rose-300 transition-all hover:shadow-md hover:shadow-rose-100">
+                    <div class="max-w-xl">
+                        @include('profile.partials.delete-user-form')
+                    </div>
+                </div>
             </div>
         </div>
 

@@ -80,6 +80,21 @@
                     <div class="pt-2">
                         <p class="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Pengaturan</p>
 
+                        <!-- Link Notifikasi untuk Sidebar -->
+                        <a href="{{ route('notifications.index') }}" class="flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors {{ request()->routeIs('notifications.*') ? 'bg-primary text-white shadow-md shadow-primary/20' : 'text-slate-600 hover:bg-slate-50 hover:text-primary' }}">
+                            <div class="flex items-center gap-3">
+                                <i class="ti ti-bell-ringing text-lg"></i>
+                                <span>Notifikasi</span>
+                            </div>
+
+                            <!-- Badge Angka Unread (Hanya muncul jika ada pesan belum dibaca) -->
+                            @if(auth()->user()->unreadNotifications->count() > 0)
+                                <span class="w-5 h-5 rounded-full bg-rose-500 text-white flex items-center justify-center text-[10px] font-bold shadow-sm">
+                                    {{ auth()->user()->unreadNotifications->count() }}
+                                </span>
+                            @endif
+                        </a>
+
                         <a href="{{ route('taxonomy.index') }}"
                         class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all mb-1 {{ request()->routeIs('taxonomy.index') ? 'bg-primary text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50 hover:text-primary' }}">
                             <i class="ti ti-tags text-lg"></i>
@@ -167,7 +182,7 @@
                                             </div>
                                         </div>
                                     @endforeach
-                                    
+
                                     <!-- Empty State (Muncul saat tidak ada unread via Alpine JS) -->
                                     <div x-show="unreadCount === 0" style="display: none;" class="p-6 text-center">
                                         <div class="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center text-slate-300 mx-auto mb-2"><i class="ti ti-bell-z text-2xl"></i></div>
@@ -254,11 +269,11 @@
                 return {
                     openNotif: false,
                     unreadCount: {{ auth()->check() ? auth()->user()->unreadNotifications->count() : 0 }},
-                    
+
                     markAsRead(id) {
                         fetch(`/notifications/${id}/mark-read`, {
                             method: 'POST',
-                            headers: { 
+                            headers: {
                                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                                 'Accept': 'application/json'
                             }
@@ -269,11 +284,11 @@
                             }
                         });
                     },
-                    
+
                     markAll() {
                         fetch(`/notifications/mark-all-read`, {
                             method: 'POST',
-                            headers: { 
+                            headers: {
                                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                                 'Accept': 'application/json'
                             }

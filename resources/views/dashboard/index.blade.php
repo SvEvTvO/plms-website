@@ -149,14 +149,13 @@
                         <!-- FOOTER KARTU -->
                         <div class="pt-4 border-t border-slate-100 mt-auto flex items-center justify-between gap-3 relative z-10">
                             <div class="flex items-center gap-2">
-                                <!-- Tombol Edit (Baru) -->
                                 <a href="{{ route('bookmarks.edit', $bookmark->id) }}" class="px-3 py-1.5 bg-amber-50 text-amber-600 hover:text-white hover:bg-amber-500 text-xs font-bold rounded-lg transition-colors flex items-center gap-1 border border-amber-200 shadow-sm" title="Edit Website">
                                     <i class="ti ti-edit text-sm"></i>
                                 </a>
 
-                                <!-- Tombol Publish / Unpublish -->
+                                <!-- UPDATE PENTING: MENGIRIMKAN DATA PRICING & NAMA KATEGORI KE DALAM MODAL -->
                                 @if(!$bookmark->is_public)
-                                    <button type="button" @click="publishModal.open({{ $bookmark->id }}, '{{ addslashes($bookmark->custom_title ?? $bookmark->website->title) }}', {{ $bookmark->tags->pluck('name')->toJson() }})" class="px-4 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 border border-indigo-200 shadow-sm"><i class="ti ti-rocket text-sm"></i> Publish ke Publik</button>
+                                    <button type="button" @click="publishModal.open({{ $bookmark->id }}, '{{ addslashes($bookmark->custom_title ?? $bookmark->website->title) }}', {{ $bookmark->tags->pluck('name')->toJson() }}, '{{ $bookmark->pricing_type }}', '{{ addslashes($bookmark->category->name ?? '') }}')" class="px-4 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 border border-indigo-200 shadow-sm"><i class="ti ti-rocket text-sm"></i> Publish ke Publik</button>
                                 @else
                                     <form action="{{ route('bookmarks.unpublish', $bookmark->id) }}" method="POST" class="inline">
                                         @csrf @method('PATCH')
@@ -187,24 +186,28 @@
         </div>
 
         <!-- MODAL PUBLISH LENGKAP -->
-
         <div x-show="publishModal.isOpen" style="display: none;" class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
             <div x-show="publishModal.isOpen" x-transition.opacity class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="publishModal.close()"></div>
-
-            <!-- Ditambahkan max-w-2xl, max-h-[90vh], dan flex-col -->
+            
             <div x-show="publishModal.isOpen" x-transition.scale.origin.bottom class="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-100 z-50 flex flex-col max-h-[90vh]">
-
-                <!-- HEADER (Tetap / Tidak ikut ter-scroll) -->
+                
                 <div class="p-5 sm:p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50 shrink-0">
                     <h3 class="font-extrabold text-lg text-slate-800">Publish ke Publik</h3>
                     <button type="button" @click="publishModal.close()" class="text-slate-400 hover:text-rose-500"><i class="ti ti-x text-xl"></i></button>
                 </div>
-
-                <!-- FORM (Area yang bisa di-scroll) -->
+                
                 <form :action="'/bookmarks/' + publishModal.bookmarkId + '/publish'" method="POST" class="p-5 sm:p-6 space-y-5 overflow-y-auto custom-scrollbar">
                     @csrf @method('PATCH')
 
                     <p class="text-xs text-slate-500 leading-relaxed">Website ini akan diindeks di Komunitas Publik. Pastikan data di bawah sudah benar.</p>
+
+                    <!-- FITUR BARU: Info Pricing (Read Only) -->
+                    <div class="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+                        <span class="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest">Lisensi:</span>
+                        <span x-show="publishModal.pricingType === 'free'" class="px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[10px] font-extrabold uppercase tracking-wider rounded border border-emerald-100 flex items-center gap-1"><i class="ti ti-free-rights"></i> Gratis</span>
+                        <span x-show="publishModal.pricingType === 'freemium'" class="px-2 py-0.5 bg-amber-50 text-amber-600 text-[10px] font-extrabold uppercase tracking-wider rounded border border-amber-100 flex items-center gap-1"><i class="ti ti-star"></i> Freemium</span>
+                        <span x-show="publishModal.pricingType === 'premium'" class="px-2 py-0.5 bg-rose-50 text-rose-600 text-[10px] font-extrabold uppercase tracking-wider rounded border border-rose-100 flex items-center gap-1"><i class="ti ti-diamond"></i> Premium</span>
+                    </div>
 
                     <!-- Judul Custom -->
                     <div>
@@ -212,26 +215,66 @@
                         <input type="text" name="custom_title" required x-model="publishModal.bookmarkTitle" class="w-full bg-slate-50 rounded-xl border-slate-200 focus:bg-white focus:border-primary focus:ring-primary text-sm h-12">
                     </div>
 
-                    <!-- Kategori -->
-                    <div>
+                    <!-- FITUR BARU: Searchable Category Dropdown -->
+                    <div class="relative" @click.away="publishModal.closeCategoryDropdown()">
                         <label class="block font-bold text-xs text-slate-500 uppercase mb-2">Kategori Global <span class="text-rose-500">*</span></label>
-                        <select name="category_id" required x-model="publishModal.categoryId" @change="publishModal.loadCategoryTags()" class="w-full bg-slate-50 rounded-xl border-slate-200 focus:bg-white focus:border-primary focus:ring-primary text-sm h-12">
-                            <option value="" disabled selected>Pilih Kategori Komunitas...</option>
-                            @foreach($adminCategories as $cat)
-                                <option value="{{ $cat->id }}">[{{ $cat->group->name ?? 'Lainnya' }}] - {{ $cat->name }}</option>
-                            @endforeach
-                        </select>
+                        
+                        <input type="hidden" name="category_id" :value="publishModal.categoryId" required>
+
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors" :class="publishModal.isCategoryOpen ? 'text-primary' : 'text-slate-400'">
+                                <i class="ti ti-search text-lg" x-show="publishModal.isCategoryOpen"></i>
+                                <i class="ti ti-folder text-lg" x-show="!publishModal.isCategoryOpen"></i>
+                            </div>
+                            
+                            <input type="text" 
+                                x-model="publishModal.categorySearch" 
+                                @focus="publishModal.isCategoryOpen = true; publishModal.categorySearch = ''"
+                                placeholder="Cari kategori komunitas..."
+                                class="w-full pl-11 pr-10 bg-slate-50 rounded-xl border-slate-200 focus:bg-white focus:border-primary focus:ring-primary text-sm h-12 transition-colors font-semibold text-slate-700 placeholder:font-normal">
+                                
+                            <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-400">
+                                <i class="ti ti-chevron-down transition-transform" :class="{'rotate-180 text-primary': publishModal.isCategoryOpen}"></i>
+                            </div>
+                        </div>
+
+                        <!-- Dropdown Hasil Kategori -->
+                        <div x-show="publishModal.isCategoryOpen" style="display: none;" x-transition.opacity.duration.200ms
+                            class="absolute z-50 w-full mt-2 bg-white border border-slate-200 shadow-xl shadow-slate-200/50 rounded-xl overflow-hidden max-h-56 overflow-y-auto custom-scrollbar pb-2">
+                            
+                            <div x-show="Object.keys(publishModal.groupedFilteredCategories).length === 0" class="p-4 text-center text-sm text-slate-500">
+                                Kategori tidak ditemukan.
+                            </div>
+
+                            <template x-for="(cats, groupName) in publishModal.groupedFilteredCategories" :key="groupName">
+                                <div class="px-3 pt-3">
+                                    <div class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5 px-2">
+                                        &mdash; <span x-text="groupName"></span>
+                                    </div>
+                                    <div class="space-y-0.5">
+                                        <template x-for="cat in cats" :key="cat.id">
+                                            <button type="button" @click="publishModal.selectCategory(cat)"
+                                                class="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 hover:bg-primary-50 hover:text-primary transition-colors flex items-center gap-2.5"
+                                                :class="publishModal.categoryId == cat.id ? 'bg-primary-50 text-primary' : ''">
+                                                <i :class="'ti ti-' + cat.icon + ' text-lg'" :class="publishModal.categoryId == cat.id ? 'text-primary' : 'text-slate-400'"></i>
+                                                <span x-text="cat.name"></span>
+                                            </button>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
                     </div>
 
-                    <!-- Bubble Tags UI -->
+                    <!-- FITUR BARU: Bubble Tags (Tanpa Fitur Tambah) -->
                     <div class="bg-primary-50/40 p-4 rounded-xl border border-primary-100">
                         <label class="block font-bold text-xs text-slate-600 uppercase mb-2">Tags (Max: 5)</label>
                         <div x-show="!publishModal.categoryId" class="text-[11px] text-amber-600 font-semibold mb-1">Pilih kategori di atas terlebih dahulu.</div>
 
                         <div x-show="publishModal.categoryId" style="display: none;">
-
-                            <!-- Ditambahkan max-h-56 dan overflow-y-auto khusus untuk kotak bubble tag -->
-                            <div class="flex flex-wrap gap-2 mb-3 max-h-56 overflow-y-auto custom-scrollbar p-1">
+                            <p class="text-[10px] text-slate-500 mb-3">Pilih tag komunitas yang tersedia (Tag baru bisa diajukan via halaman Pengajuan Publik).</p>
+                            
+                            <div class="flex flex-wrap gap-2 mb-2 max-h-48 overflow-y-auto custom-scrollbar p-1">
                                 <template x-for="tag in publishModal.availableTags" :key="tag.name">
                                     <button type="button" @click="publishModal.toggleTag(tag.name)"
                                         class="px-2.5 py-1 rounded-lg border text-[11px] font-bold transition-all focus:outline-none"
@@ -239,13 +282,10 @@
                                         <span x-text="tag.name"></span>
                                     </button>
                                 </template>
+                                <div x-show="publishModal.availableTags.length === 0" class="text-xs text-slate-400 italic py-1">Tidak ada tag di kategori komunitas ini.</div>
                             </div>
 
-                            <div class="relative flex items-center mt-2">
-                                <input type="text" x-model="publishModal.newTag" @keydown.enter.prevent="publishModal.addNewTag()" @keydown.comma.prevent="publishModal.addNewTag()" placeholder="Tambah tag baru..." class="w-full pl-3 pr-20 bg-white rounded-lg border-slate-200 focus:border-primary text-xs h-10" :disabled="publishModal.tags.length >= 5">
-                                <button type="button" @click="publishModal.addNewTag()" :disabled="publishModal.tags.length >= 5 || publishModal.newTag.trim() === ''" class="absolute right-1 px-3 py-1.5 bg-slate-500 text-white text-[10px] font-bold rounded shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">Tambah</button>
-                            </div>
-
+                            <!-- Input Hidden untuk Tag -->
                             <template x-for="(tag, index) in publishModal.tags" :key="index">
                                 <input type="hidden" name="tags[]" :value="tag">
                             </template>
@@ -264,35 +304,106 @@
     </div>
 
     <!-- SCRIPT ALPINE.JS AJAX & FILTER PINTAR -->
+    @php
+        $formattedAdminCategories = $adminCategories->map(fn($cat) => [
+            'id' => $cat->id, 
+            'name' => $cat->name, 
+            'group' => $cat->group ? $cat->group->name : 'Kategori Lainnya', 
+            'icon' => $cat->icon ?? 'folder'
+        ])->values();
+    @endphp
+
     <script>
         function dashboardFilters() {
             return {
                 searchData: @json($searchData['categories']).concat(@json($searchData['tags'])).concat(@json($searchData['websites'])),
                 selectedCategory: @json($selectedCategory), selectedGroup: @json($selectedGroup), activeGroup: @json($selectedGroup), selectedTags: @json($selectedTags), selectedWebsite: @json($selectedWebsite), query: '{{ $searchQueryText }}', showDropdown: false, isLoading: false,
+                
                 publishModal: {
-                    isOpen: false, bookmarkId: null, bookmarkTitle: '',
-                    categoryId: '', tags: [], availableTags: [], newTag: '',
+                    isOpen: false, 
+                    bookmarkId: null, 
+                    bookmarkTitle: '',
+                    pricingType: '', 
+                    categoryId: '', 
+                    categorySearch: '', 
+                    selectedCategoryName: '', 
+                    isCategoryOpen: false,
+                    tags: [], 
+                    availableTags: [], 
+                    
+                    allAdminCategories: @json($formattedAdminCategories),
                     allAdminTags: @json($adminTags ?? []),
 
-                    open(id, title, existingTags) {
-                        this.bookmarkId = id;
-                        this.bookmarkTitle = title;
-                        this.categoryId = '';
-                        this.tags = existingTags || [];
+                    open(id, title, existingTags, pricing, privateCategoryName) { 
+                        this.bookmarkId = id; 
+                        this.bookmarkTitle = title; 
+                        this.pricingType = pricing;
+                        this.isOpen = true; 
+                        document.body.style.overflow = 'hidden'; 
+                        
+                        this.tags = existingTags || []; 
                         this.availableTags = [];
-                        this.newTag = '';
-                        this.isOpen = true;
-                        document.body.style.overflow = 'hidden';
+
+                        const matchedCategory = this.allAdminCategories.find(c => c.name.toLowerCase() === (privateCategoryName || '').toLowerCase());
+                        
+                        if (matchedCategory) {
+                            this.categoryId = matchedCategory.id;
+                            this.categorySearch = matchedCategory.name;
+                            this.selectedCategoryName = matchedCategory.name;
+                            this.loadCategoryTags(); 
+                        } else {
+                            this.categoryId = ''; 
+                            this.categorySearch = '';
+                            this.selectedCategoryName = '';
+                            this.isCategoryOpen = false;
+                            this.tags = []; 
+                        }
                     },
-                    close() {
-                        this.isOpen = false;
-                        setTimeout(() => { this.bookmarkId = null; }, 300);
-                        document.body.style.overflow = '';
+                    close() { 
+                        this.isOpen = false; 
+                        setTimeout(() => { this.bookmarkId = null; }, 300); 
+                        document.body.style.overflow = ''; 
                     },
+
+                    get groupedFilteredCategories() {
+                        const query = this.categorySearch.toLowerCase().trim();
+                        let filtered = this.allAdminCategories;
+                        
+                        if (query !== '') {
+                            filtered = this.allAdminCategories.filter(c => 
+                                c.name.toLowerCase().includes(query) || 
+                                (c.group && c.group.toLowerCase().includes(query))
+                            );
+                        }
+
+                        const groups = {};
+                        filtered.forEach(c => {
+                            const g = c.group || 'Kategori Lainnya';
+                            if (!groups[g]) groups[g] = [];
+                            groups[g].push(c);
+                        });
+                        return groups;
+                    },
+                    selectCategory(cat) {
+                        this.categoryId = cat.id;
+                        this.categorySearch = cat.name;
+                        this.selectedCategoryName = cat.name;
+                        this.isCategoryOpen = false;
+                        this.tags = []; 
+                        this.loadCategoryTags(); 
+                    },
+                    closeCategoryDropdown() {
+                        this.isCategoryOpen = false;
+                        this.categorySearch = this.selectedCategoryName;
+                    },
+
                     loadCategoryTags() {
                         if (!this.categoryId) return;
+                        
+                        // Tarik tag global berdasarkan kategori
                         this.availableTags = this.allAdminTags.filter(t => t.category_id == this.categoryId);
-                        // Gabungkan tag pribadi ke list agar bisa diklik/dipilih
+                        
+                        // FIX: Gabungkan tag bawaan dari bookmark pribadi agar tetap muncul di bubble (dan otomatis terseleksi)
                         this.tags.forEach(t => {
                             if (!this.availableTags.some(at => at.name.toLowerCase() === t.toLowerCase())) {
                                 this.availableTags.push({ name: t });
@@ -300,19 +411,15 @@
                         });
                     },
                     toggleTag(tagName) {
-                        if (this.tags.includes(tagName)) { this.tags = this.tags.filter(t => t !== tagName); }
-                        else { if (this.tags.length < 5) { this.tags.push(tagName); } else { alert('Maksimal 5 Tag!'); } }
-                    },
-                    addNewTag() {
-                        let tagText = this.newTag.trim();
-                        if (tagText !== '') {
-                            if (tagText.startsWith('#')) tagText = tagText.substring(1).trim();
-                            if (!this.availableTags.some(at => at.name.toLowerCase() === tagText.toLowerCase())) { this.availableTags.push({ name: tagText }); }
-                            if (!this.tags.some(t => t.toLowerCase() === tagText.toLowerCase()) && this.tags.length < 5) { this.tags.push(tagText); }
+                        if (this.tags.includes(tagName)) { 
+                            this.tags = this.tags.filter(t => t !== tagName); 
+                        } else { 
+                            if (this.tags.length < 5) { this.tags.push(tagName); } 
+                            else { alert('Maksimal hanya 5 Tag yang diizinkan untuk Komunitas!'); } 
                         }
-                        this.newTag = '';
                     }
                 },
+                
                 init() {
                     this.$el.addEventListener('click', (e) => { const link = e.target.closest('#pagination-container a'); if (link) { e.preventDefault(); this.fetchResults(link.href); } });
                     window.addEventListener('popstate', () => { window.location.reload(); });

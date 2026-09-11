@@ -7,7 +7,15 @@ use Illuminate\Database\Eloquent\Model;
 class TaxonomyRequest extends Model
 {
     protected $fillable = [
-        'user_id', 'type', 'name', 'target_parent_id', 'icon', 'color', 'status', 'admin_notes'
+        'user_id',
+        'type',
+        'name',
+        'target_parent_id', // <-- Ubah menjadi ini
+        'status',
+        // Tambahkan juga icon & color jika nanti kamu mau menggunakannya
+        'icon',
+        'color',
+        'admin_notes'
     ];
 
     public function user()
